@@ -8,5 +8,10 @@ class UserPrivate(BaseModel):
 
 
 class UserPublic(BaseModel):
+    id: int
     username: str
     email: EmailStr
+
+
+class UserDB(UserPrivate):
+    id: int
