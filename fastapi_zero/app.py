@@ -1,24 +1,41 @@
+from http import HTTPStatus
+
 from fastapi import FastAPI, HTTPException
-from fastapi_zero.schemas import UserPrivate, UserPublic, UserDB, UserList
+from fastapi.responses import HTMLResponse
+
+from fastapi_zero.schemas import (
+    Message,
+    UserDB,
+    UserList,
+    UserPrivate,
+    UserPublic,
+)
 
 app = FastAPI()
 
 database = []
 
 
-@app.get('/')
-def read_root():
-    return {'message': 'Olá Mundo'}
+@app.get('/', status_code=HTTPStatus.OK, response_class=HTMLResponse)
+def inicio():
+    return """
+        <html>
+            <head></head>
+            <body>
+                <h1>Ola mundo!</h1>
+            </body>
+        </html>
+"""
 
 
-@app.post('/user/', status_code=201, response_model=UserPublic)
+@app.post('/user/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
 def create_user(user: UserPrivate):
     usuario_com_id = UserDB(**user.model_dump(), id=len(database) + 1)
     database.append(usuario_com_id)
     return usuario_com_id
 
 
-@app.get('/users/', status_code=200, response_model=UserList)
+@app.get('/users/', status_code=HTTPStatus.OK, response_model=UserList)
 def read_users():
     return {'users': database}
 
@@ -26,7 +43,19 @@ def read_users():
 @app.put('/users/{user_id}', response_model=UserPublic)
 def update_user(user_id: int, user: UserPrivate):
     if user_id > len(database) or user_id < 1:
-        raise HTTPException(status_code=404, detail='Usuario nao encontrado')
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail='Usuario nao encontrado'
+        )
     user_com_id = UserDB(**user.model_dump(), id=user_id)
     database[user_id - 1] = user_com_id
     return user_com_id
+
+
+@app.delete('/users/{user_id}', response_model=Message)
+def delete_user(user_id: int):
+    if user_id > len(database) or user_id < 1:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail='Usuario nao encontrado'
+        )
+    del database[user_id - 1]
+    return {'detail': 'Usuario Deletado'}
