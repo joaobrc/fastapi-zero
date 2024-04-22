@@ -42,7 +42,7 @@ def test_ler_os_usuarios__retorn_code_200(cliente):
 
 def test_atualizando_um_usuario_retornando_code_200(cliente):
     resposta = cliente.put(
-        '/users/1',
+        '/user/1',
         json={
             'username': 'jb',
             'email': 'jb@local.com',
@@ -58,27 +58,38 @@ def test_atualizando_um_usuario_retornando_code_200(cliente):
     }
 
 
-def test_erro_ao_autualizar_retonando_code_404(cliente):
+def test_retonar_um_usuario_cadastrado_e_code_200(cliente):
+    reposta = cliente.get('/user/1')
+    code = 200
+    assert reposta.status_code == code
+
+def test_erro_ao_pegar_usuaaro_e_code_406(cliente):
+    resposta = cliente.get('/user/36')
+    code = 406
+    assert resposta.status_code == code
+
+
+def test_erro_ao_autualizar_retonando_code_406(cliente):
     resposta = cliente.put(
         '/user/32',
         json={
             'username': 'fe',
             'email': 'fe@local.com',
-            'password0': 'retesde',
+            'password': 'retesde',
         },
     )
-    code = 404
+    code = 406
     assert resposta.status_code == code
 
 
 def test_deletando_usuario_retonando_code_200(cliente):
-    resposta = cliente.delete('/users/1')
+    resposta = cliente.delete('/user/1')
     code = 200
     assert resposta.status_code == code
     assert resposta.json() == {'detail': 'Usuario Deletado'}
 
 
-def test_erro_ao_deletar_e_retonandor_code_404(cliente):
+def test_erro_ao_deletar_e_retonandor_code_400(cliente):
     resposta = cliente.delete('/user/32')
-    code = 404
+    code = 400
     assert resposta.status_code == code
