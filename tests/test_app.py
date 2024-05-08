@@ -63,6 +63,7 @@ def test_retonar_um_usuario_cadastrado_e_code_200(cliente):
     code = 200
     assert reposta.status_code == code
 
+
 def test_erro_ao_pegar_usuaaro_e_code_406(cliente):
     resposta = cliente.get('/user/36')
     code = 406

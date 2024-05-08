@@ -46,7 +46,8 @@ def read_users():
 def get_user(user_id: int):
     if user_id > len(database) or user_id < 1:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_ACCEPTABLE, detail='Usuario nao encontrado'
+            status_code=HTTPStatus.NOT_ACCEPTABLE,
+            detail='Usuario nao encontrado',
         )
     return database[user_id - 1]
 
@@ -55,7 +56,8 @@ def get_user(user_id: int):
 def update_user(user_id: int, user: UserPrivate):
     if user_id > len(database) or user_id < 1:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_ACCEPTABLE, detail='Usuario nao encontrado'
+            status_code=HTTPStatus.NOT_ACCEPTABLE,
+            detail='Usuario nao encontrado',
         )
     user_com_id = UserDB(**user.model_dump(), id=user_id)
     database[user_id - 1] = user_com_id
