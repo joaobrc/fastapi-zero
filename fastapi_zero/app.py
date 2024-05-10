@@ -1,8 +1,12 @@
 from http import HTTPStatus
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from fastapi_zero.database import get_session
+from fastapi_zero.models import User
 from fastapi_zero.schemas import (
     Message,
     UserDB,
@@ -28,11 +32,22 @@ def inicio():
 """
 
 
-@app.post('/user/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
-def create_user(user: UserPrivate):
-    usuario_com_id = UserDB(**user.model_dump(), id=len(database) + 1)
-    database.append(usuario_com_id)
-    return usuario_com_id
+@app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
+def create_user(user: UserPrivate, session:Session = Depends(get_session)):
+    db_user = session.scalar(
+        select(User).where(User.username == user.username)
+        )
+    if db_user:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail='User already registered'
+        )
+    db_user = User(
+        username= user.username, password=user.password, email=user.email)
+    session.add(db_user)
+    session.commit()
+    session.refresh()
+    return db_user
 
 
 @app.get('/users/', status_code=HTTPStatus.OK, response_model=UserList)
@@ -41,7 +56,7 @@ def read_users():
 
 
 @app.get(
-    '/user/{user_id}', status_code=HTTPStatus.OK, response_model=UserPublic
+    '/users/{user_id}', status_code=HTTPStatus.OK, response_model=UserPublic
 )
 def get_user(user_id: int):
     if user_id > len(database) or user_id < 1:
@@ -52,7 +67,7 @@ def get_user(user_id: int):
     return database[user_id - 1]
 
 
-@app.put('/user/{user_id}', response_model=UserPublic)
+@app.put('/users/{user_id}', response_model=UserPublic)
 def update_user(user_id: int, user: UserPrivate):
     if user_id > len(database) or user_id < 1:
         raise HTTPException(
@@ -64,7 +79,7 @@ def update_user(user_id: int, user: UserPrivate):
     return user_com_id
 
 
-@app.delete('/user/{user_id}', response_model=Message)
+@app.delete('/users/{user_id}', response_model=Message)
 def delete_user(user_id: int):
     if user_id > len(database) or user_id < 1:
         raise HTTPException(
