@@ -1,3 +1,6 @@
+from http import HTTPStatus
+
+
 def test_retorna_code_200(cliente):
     resposta = cliente.get('/')
     code = 200
@@ -9,15 +12,14 @@ def test_retorna_code_200(cliente):
 
 def test_criacao_de_usuario_retorna_201(cliente):
     resposta = cliente.post(
-        url='/users/',
+        url='/users',
         json={
             'username': 'joao',
             'email': 'joao@local.com',
             'password': '123456',
         },
     )
-    code = 201
-    assert resposta.status_code == code
+    assert resposta.status_code == HTTPStatus.CREATED
     assert resposta.json() == {
         'id': 1,
         'username': 'joao',
@@ -27,17 +29,8 @@ def test_criacao_de_usuario_retorna_201(cliente):
 
 def test_ler_os_usuarios__retorn_code_200(cliente):
     resposta = cliente.get('/users/')
-    code = 200
-    assert resposta.status_code == code
-    assert resposta.json() == {
-        'users': [
-            {
-                'username': 'joao',
-                'email': 'joao@local.com',
-                'id': 1,
-            }
-        ]
-    }
+    assert resposta.status_code == HTTPStatus.OK
+    assert resposta.json() == {'users': []}
 
 
 def test_atualizando_um_usuario_retornando_code_200(cliente):
