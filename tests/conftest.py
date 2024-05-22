@@ -25,7 +25,7 @@ def user(session):
     user = User(username='teste', password='teste1', email='teste@teste.com')
     session.add(user)
     session.commit()
-    session.refresh()
+    session.refresh(user)
     return user
 
 

@@ -1,5 +1,7 @@
 from http import HTTPStatus
 
+from fastapi_zero.schemas import UserPublic
+
 
 def test_retorna_code_200(cliente):
     resposta = cliente.get('/')
@@ -27,11 +29,23 @@ def test_criacao_de_usuario_retorna_201(cliente):
     }
 
 
-def test_ler_os_usuarios__retorn_code_200(cliente):
+def test_ler_os_usuarios_vazios_retorn_code_200(cliente):
     resposta = cliente.get('/users/')
     assert resposta.status_code == HTTPStatus.OK
     assert resposta.json() == {'users': []}
 
+
+def test_ler_os_usuarios_return_code_200(cliente, user):
+    valida_user = UserPublic.model_validate(user).model_dump()
+    requisicao = cliente.get('/users/')
+    assert requisicao.json() == {'users': [valida_user]}
+
+
+def test_retonar_um_usuario_cadastrado_e_code_200(cliente, user):
+    valida_user = UserPublic.model_validate(user).model_dump()
+    reposta = cliente.get('/users/1')
+    assert HTTPStatus.OK == reposta.status_code
+    assert reposta.json() == valida_user
 
 def test_atualizando_um_usuario_retornando_code_200(cliente):
     resposta = cliente.put(
@@ -49,12 +63,6 @@ def test_atualizando_um_usuario_retornando_code_200(cliente):
         'email': 'jb@local.com',
         'id': 1,
     }
-
-
-def test_retonar_um_usuario_cadastrado_e_code_200(cliente):
-    reposta = cliente.get('/users/1')
-    code = 200
-    assert reposta.status_code == code
 
 
 def test_erro_ao_pegar_usuaaro_e_code_406(cliente):
