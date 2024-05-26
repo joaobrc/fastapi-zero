@@ -5,7 +5,7 @@ class UserPrivate(BaseModel):
     username: str
     email: EmailStr
     password: str
-
+    model_config = ConfigDict(from_attributes=True)
 
 class UserPublic(BaseModel):
     id: int

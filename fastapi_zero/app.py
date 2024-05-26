@@ -9,16 +9,12 @@ from fastapi_zero.database import get_session
 from fastapi_zero.models import User
 from fastapi_zero.schemas import (
     Message,
-    UserDB,
     UserList,
     UserPrivate,
     UserPublic,
 )
 
 app = FastAPI()
-
-database = []
-
 
 @app.get('/', status_code=HTTPStatus.OK, response_class=HTMLResponse)
 def inicio():
@@ -66,29 +62,35 @@ def get_user(user_id: int, session: Session = Depends(get_session)):
     database = session.scalars(select(User).where(User.id == user_id)).first()
     if not database:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_ACCEPTABLE,
+            status_code=HTTPStatus.NOT_FOUND,
             detail='Usuario nao encontrado',
         )
     return database
 
 
-@app.put('/users/{user_id}', response_model=UserPublic)
-def update_user(user_id: int, user: UserPrivate):
-    if user_id > len(database) or user_id < 1:
+@app.put('/users/{user_id}', response_model=UserPublic, status_code=HTTPStatus.OK)
+def update_user(user_id: int, user: UserPrivate, session: Session = Depends(get_session)):
+    user_database = session.scalars(select(User).where(User.id == user_id)).first()
+    if not user_database:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_ACCEPTABLE,
+            status_code=HTTPStatus.NOT_FOUND,
             detail='Usuario nao encontrado',
         )
-    user_com_id = UserDB(**user.model_dump(), id=user_id)
-    database[user_id - 1] = user_com_id
-    return user_com_id
+    user_database.username = user.username
+    user_database.password = user.password
+    user_database.email = user.email
+    session.commit()
+    session.refresh(user_database)
+    return user_database
 
 
-@app.delete('/users/{user_id}', response_model=Message)
-def delete_user(user_id: int):
-    if user_id > len(database) or user_id < 1:
+@app.delete('/users/{user_id}', response_model=Message, status_code=HTTPStatus.OK)
+def delete_user(user_id: int, session: Session = Depends(get_session)):
+    user_datebase = session.scalars(select(User).where(User.id == user_id)).first()
+    if not user_datebase:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail='Usuario nao encontrado'
+            status_code=HTTPStatus.NOT_FOUND, detail='Usuario nao encontrado'
         )
-    del database[user_id - 1]
+    session.delete(user_datebase)
+    session.commit()
     return {'detail': 'Usuario Deletado'}

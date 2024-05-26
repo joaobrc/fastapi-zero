@@ -28,6 +28,17 @@ def test_criacao_de_usuario_retorna_201(cliente):
         'email': 'joao@local.com',
     }
 
+def test_erro_ao_criar_usuario_ja_cadastrado(cliente, user):
+    resposta = cliente.post(
+        url='/users',
+        json={
+            'username': 'teste',
+            'email': 'joao@local.com',
+            'password': 'joaasd'
+        }
+    )
+    code = HTTPStatus.BAD_REQUEST
+    assert resposta.status_code == code
 
 def test_ler_os_usuarios_vazios_retorn_code_200(cliente):
     resposta = cliente.get('/users/')
@@ -47,7 +58,7 @@ def test_retonar_um_usuario_cadastrado_e_code_200(cliente, user):
     assert HTTPStatus.OK == reposta.status_code
     assert reposta.json() == valida_user
 
-def test_atualizando_um_usuario_retornando_code_200(cliente):
+def test_atualizando_um_usuario_retornando_code_200(cliente, user):
     resposta = cliente.put(
         '/users/1',
         json={
@@ -56,7 +67,7 @@ def test_atualizando_um_usuario_retornando_code_200(cliente):
             'password': 'wwewqas',
         },
     )
-    code = 200
+    code = HTTPStatus.OK
     assert resposta.status_code == code
     assert resposta.json() == {
         'username': 'jb',
@@ -67,11 +78,11 @@ def test_atualizando_um_usuario_retornando_code_200(cliente):
 
 def test_erro_ao_pegar_usuaaro_e_code_406(cliente):
     resposta = cliente.get('/users/36')
-    code = 406
+    code = HTTPStatus.NOT_FOUND
     assert resposta.status_code == code
 
 
-def test_erro_ao_autualizar_retonando_code_406(cliente):
+def test_erro_ao_autualizar_retonando_code_406(cliente, user):
     resposta = cliente.put(
         '/users/32',
         json={
@@ -80,18 +91,18 @@ def test_erro_ao_autualizar_retonando_code_406(cliente):
             'password': 'retesde',
         },
     )
-    code = 406
+    code = HTTPStatus.NOT_FOUND
     assert resposta.status_code == code
 
 
-def test_deletando_usuario_retonando_code_200(cliente):
+def test_deletando_usuario_retonando_code_200(cliente, user):
     resposta = cliente.delete('/users/1')
-    code = 200
+    code = HTTPStatus.OK
     assert resposta.status_code == code
     assert resposta.json() == {'detail': 'Usuario Deletado'}
 
 
 def test_erro_ao_deletar_e_retonandor_code_400(cliente):
     resposta = cliente.delete('/users/32')
-    code = 400
+    code = HTTPStatus.NOT_FOUND
     assert resposta.status_code == code
