@@ -28,17 +28,19 @@ def test_criacao_de_usuario_retorna_201(cliente):
         'email': 'joao@local.com',
     }
 
+
 def test_erro_ao_criar_usuario_ja_cadastrado(cliente, user):
     resposta = cliente.post(
         url='/users',
         json={
             'username': 'teste',
             'email': 'joao@local.com',
-            'password': 'joaasd'
-        }
+            'password': 'joaasd',
+        },
     )
     code = HTTPStatus.BAD_REQUEST
     assert resposta.status_code == code
+
 
 def test_ler_os_usuarios_vazios_retorn_code_200(cliente):
     resposta = cliente.get('/users/')
@@ -57,6 +59,7 @@ def test_retonar_um_usuario_cadastrado_e_code_200(cliente, user):
     reposta = cliente.get('/users/1')
     assert HTTPStatus.OK == reposta.status_code
     assert reposta.json() == valida_user
+
 
 def test_atualizando_um_usuario_retornando_code_200(cliente, user):
     resposta = cliente.put(
@@ -106,3 +109,14 @@ def test_erro_ao_deletar_e_retonandor_code_400(cliente):
     resposta = cliente.delete('/users/32')
     code = HTTPStatus.NOT_FOUND
     assert resposta.status_code == code
+
+
+def test_adiquirir_token_de_acess_teste_para_a_rota_token(cliente, user):
+    resposta = cliente.post(
+        '/token',
+        data={'username': user.email, 'password': user.clear_password},
+    )
+    token = resposta.json()
+    assert resposta.status_code == HTTPStatus.OK
+    assert 'access_token' in token
+    assert 'token_type' in token

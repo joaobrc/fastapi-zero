@@ -14,6 +14,9 @@ fastapi = "^0.110.2"
 uvicorn = "^0.29.0"
 pydantic-settings = "^2.2.1"
 alembic = "^1.13.1"
+pyjwt = "^2.8.0"
+pwdlib = {extras = ["argon2"], version = "^0.2.0"}
+python-multipart = "^0.0.9"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -28,7 +31,7 @@ ruff = "0.2.1"
 
 [tool.ruff]
 line-length = 79
-exclude = ['.venv', 'migratons']
+exclude = ['.venv', 'migrations']
 
 [tool.ruff.lint]
 preview= true
@@ -38,10 +41,6 @@ select = ['I', 'F', 'E', 'W', 'PL', 'PT']
 preview = true
 quote-style = 'single'
 
-[tool.isort]
-profile = "black"
-line_length = 79
-
 [tool.pytest.ini_options]
 pythonpath = "."
 addopts = '-p no:warnings'
@@ -50,8 +49,8 @@ addopts = '-p no:warnings'
 extend-exclude = '(migrations/)'
 
 [tool.taskipy.tasks]
-lint = 'ruff check .; ruff check . --diff'
-format = 'blue . && isort .'
+lint = 'ruff check . && ruff check . --diff'
+format = 'ruff check . --fix && ruff format .'
 run = 'uvicorn fastapi_zero.app:app --reload'
 pre_test = 'task lint'
 test = 'pytest -s -x --cov=fastapi_zero -vv'

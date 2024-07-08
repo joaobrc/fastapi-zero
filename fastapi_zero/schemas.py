@@ -7,6 +7,12 @@ class UserPrivate(BaseModel):
     password: str
     model_config = ConfigDict(from_attributes=True)
 
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
 class UserPublic(BaseModel):
     id: int
     username: str

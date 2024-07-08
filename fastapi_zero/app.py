@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,12 +10,20 @@ from fastapi_zero.database import get_session
 from fastapi_zero.models import User
 from fastapi_zero.schemas import (
     Message,
+    Token,
     UserList,
     UserPrivate,
     UserPublic,
 )
+from fastapi_zero.security import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+    get_current_user
+)
 
 app = FastAPI()
+
 
 @app.get('/', status_code=HTTPStatus.OK, response_class=HTMLResponse)
 def inicio():
@@ -28,18 +37,48 @@ def inicio():
 """
 
 
-@app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
-def create_user(user: UserPrivate, session: Session = Depends(get_session)):
-    db_user = session.scalar(
-        select(User).where(User.username == user.username)
-    )
-    if db_user:
+@app.post('/token', response_model=Token)
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: Session = Depends(get_session),
+):
+    user = session.scalar(select(User).where(User.email == form_data.username))
+    if not user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail='User already registered',
+            detail='Incorrect email or password',
         )
+    if not verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail='Incorrect email or password',
+        )
+    access_token = create_access_token(data={'sub': user.email})
+    return {'access_token': access_token, 'token_type': 'Bearer'}
+
+
+@app.post('/users', status_code=HTTPStatus.CREATED, response_model=UserPublic)
+def create_user(user: UserPrivate, session: Session = Depends(get_session)):
+    db_user = session.scalar(
+        select(User).where(
+            (User.username == user.username) | (User.email == user.email)
+        )
+    )
+    if db_user:
+        if db_user.username == user.username:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail='User already registered',
+            )
+        if db_user.email == user.email:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail='Email already registered',
+            )
+
+    password_user = get_password_hash(password=user.password)
     db_user = User(
-        username=user.username, password=user.password, email=user.email
+        username=user.username, password=password_user, email=user.email
     )
     session.add(db_user)
     session.commit()
@@ -47,7 +86,7 @@ def create_user(user: UserPrivate, session: Session = Depends(get_session)):
     return db_user
 
 
-@app.get('/users/', status_code=HTTPStatus.OK, response_model=UserList)
+@app.get('/users', status_code=HTTPStatus.OK, response_model=UserList)
 def read_users(
     skip: int = 0, limit: int = 100, session: Session = Depends(get_session)
 ):
@@ -68,29 +107,34 @@ def get_user(user_id: int, session: Session = Depends(get_session)):
     return database
 
 
-@app.put('/users/{user_id}', response_model=UserPublic, status_code=HTTPStatus.OK)
-def update_user(user_id: int, user: UserPrivate, session: Session = Depends(get_session)):
-    user_database = session.scalars(select(User).where(User.id == user_id)).first()
-    if not user_database:
+@app.put(
+    '/users/{user_id}', response_model=UserPublic, status_code=HTTPStatus.OK
+)
+def update_user(
+    user_id: int, 
+    user: UserPrivate, 
+    session: Session = Depends(get_session), 
+    current_user = Depends(get_current_user)):
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail='Usuario nao encontrado',
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='User Sem autorização'
         )
-    user_database.username = user.username
-    user_database.password = user.password
-    user_database.email = user.email
+    current_user.username = user.username
+    current_user.password = get_password_hash(user.password)
+    current_user.email = user.email
     session.commit()
-    session.refresh(user_database)
-    return user_database
+    session.refresh(current_user)
+    return current_user
 
 
-@app.delete('/users/{user_id}', response_model=Message, status_code=HTTPStatus.OK)
-def delete_user(user_id: int, session: Session = Depends(get_session)):
-    user_datebase = session.scalars(select(User).where(User.id == user_id)).first()
-    if not user_datebase:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='Usuario nao encontrado'
-        )
-    session.delete(user_datebase)
+@app.delete(
+    '/users/{user_id}', response_model=Message, status_code=HTTPStatus.OK
+)
+def delete_user(
+    user_id: int,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)):
+    session.delete(current_user)
     session.commit()
     return {'detail': 'Usuario Deletado'}
