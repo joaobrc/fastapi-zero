@@ -13,6 +13,10 @@ class Token(BaseModel):
     token_type: str
 
 
+class TokenData(BaseModel):
+    username: str | None = None
+
+
 class UserPublic(BaseModel):
     id: int
     username: str

@@ -36,6 +36,29 @@ def user(session):
 
 
 @pytest.fixture()
+def user2(session):
+    user = User(
+        username='testes',
+        password=get_password_hash('teste3'),
+        email='testes@teste.com',
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    user.clear_password = 'teste3'
+    return user
+
+
+@pytest.fixture()
+def token(cliente, user):
+    resposta = cliente.post(
+        '/token',
+        data={'username': user.email, 'password': user.clear_password},
+    )
+    return resposta.json()['access_token']
+
+
+@pytest.fixture()
 def session():
     engine = create_engine(
         'sqlite:///:memory:',

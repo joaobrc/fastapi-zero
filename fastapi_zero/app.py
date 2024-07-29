@@ -17,9 +17,9 @@ from fastapi_zero.schemas import (
 )
 from fastapi_zero.security import (
     create_access_token,
+    get_current_user,
     get_password_hash,
     verify_password,
-    get_current_user
 )
 
 app = FastAPI()
@@ -97,13 +97,19 @@ def read_users(
 @app.get(
     '/users/{user_id}', status_code=HTTPStatus.OK, response_model=UserPublic
 )
-def get_user(user_id: int, session: Session = Depends(get_session)):
-    database = session.scalars(select(User).where(User.id == user_id)).first()
-    if not database:
+def get_user(
+    user_id: int,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail='Usuario nao encontrado',
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Usuario não autorizado',
         )
+
+    database = session.scalars(select(User).where(User.id == user_id)).first()
+
     return database
 
 
@@ -111,14 +117,14 @@ def get_user(user_id: int, session: Session = Depends(get_session)):
     '/users/{user_id}', response_model=UserPublic, status_code=HTTPStatus.OK
 )
 def update_user(
-    user_id: int, 
-    user: UserPrivate, 
-    session: Session = Depends(get_session), 
-    current_user = Depends(get_current_user)):
+    user_id: int,
+    user: UserPrivate,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
     if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail='User Sem autorização'
+            status_code=HTTPStatus.UNAUTHORIZED, detail='User Sem autorização'
         )
     current_user.username = user.username
     current_user.password = get_password_hash(user.password)
@@ -132,9 +138,9 @@ def update_user(
     '/users/{user_id}', response_model=Message, status_code=HTTPStatus.OK
 )
 def delete_user(
-    user_id: int,
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)):
+    current_user=Depends(get_current_user),
+):
     session.delete(current_user)
     session.commit()
     return {'detail': 'Usuario Deletado'}

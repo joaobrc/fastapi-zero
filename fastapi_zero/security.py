@@ -1,18 +1,18 @@
 from datetime import UTC, datetime, timedelta
 from http import HTTPStatus
 
-from jwt import encode, decode
-from jwt.exceptions import PyJWTError
-from pwdlib import PasswordHash
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from jwt import decode, encode
+from jwt.exceptions import PyJWTError
+from pwdlib import PasswordHash
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from fastapi_zero.settings import Settings
 from fastapi_zero.database import get_session
-from fastapi_zero.schemas import UserPrivate
-
+from fastapi_zero.models import User
+from fastapi_zero.schemas import TokenData
+from fastapi_zero.settings import Settings
 
 config = Settings()
 pwd_context = PasswordHash.recommended()
@@ -29,24 +29,28 @@ def create_access_token(data: dict):
     encode_jwt = encode(to_enconde, SECRET_KEY, algorithm=ALGORITOMO)
     return encode_jwt
 
+
 def get_current_user(
-        session : Session = Depends(get_session),
-        token: str= Depends( route_auth)):
-    
+    session: Session = Depends(get_session), token: str = Depends(route_auth)
+):
     credentials_erro = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail='Problema para autenticar usuario',
-        headers={'WWW-Authenticate': 'Bearer'}
+        headers={'WWW-Authenticate': 'Bearer'},
     )
-    
+
     try:
         dados_token = decode(token, SECRET_KEY, algorithms=[ALGORITOMO])
-        username = dados_token.get('sub')
+        username: str = dados_token.get('sub')
         if not username:
             raise credentials_erro
+        token_data = TokenData(username=username)
     except PyJWTError:
         raise credentials_erro
-    user = session.scalar(select(UserPrivate).where(UserPrivate.email == username))
+    user = session.scalar(
+        select(User).where(User.email == token_data.username)
+    )
+
     if not user:
         raise credentials_erro
     return user
